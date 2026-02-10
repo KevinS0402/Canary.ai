@@ -14,68 +14,6 @@ const arliApiKey = process.env.ARLI_API_KEY;
 const arliModelName = process.env.ARLI_MODEL || "Gemma-3-27B-ArliAI-RPMax-v3";
 
 /**
- * List available Arli models (if supported).
- *
- * @returns {Promise<Array>} - Array of available model information.
- */
-export async function listArliModels() {
-  if (!arliApiKey) {
-    throw new Error(
-      "ARLI_API_KEY is not set. Please configure it in your .env file.",
-    );
-  }
-
-  try {
-    const response = await fetch("https://api.arliai.com/v1/models", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${arliApiKey}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to list models: ${response.status} ${response.statusText}`,
-      );
-    }
-
-    const data = await response.json();
-    return data.data || data.models || [];
-  } catch (error) {
-    console.warn("Could not list Arli models:", error.message);
-    return [];
-  }
-}
-
-/**
- * List all available Gemini models.
- *
- * @returns {Promise<Array>} - Array of available model information.
- */
-export async function listGeminiModels() {
-  if (!geminiApiKey) {
-    throw new Error(
-      "GEMINI_API_KEY is not set. Please configure it in your .env file.",
-    );
-  }
-
-  const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/models?key=" +
-      geminiApiKey,
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      `Failed to list models: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const data = await response.json();
-  return data.models || [];
-}
-
-/**
  * Query Gemini with a text prompt.
  *
  * @param {string} query - The user input or prompt to send to Gemini.
@@ -195,13 +133,7 @@ export async function query(query) {
   return queryGemini(query);
 }
 
-// Example usage (uncomment to test manually):
 (async () => {
-  // List available models
-  const models = await listArliModels();
-  console.log("Available models:", JSON.stringify(models, null, 2));
-
-  // Query the default provider
   const result = await queryArli("Say hello!");
   console.log(result);
 })();
