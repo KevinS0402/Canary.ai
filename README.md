@@ -1,3 +1,34 @@
+## Initialising Database
+
+First initialise the backend
+
+```bash
+cd backend
+npm install
+```
+
+Add the `DIRECT_URL` and `DATABASE_URL` to the backend .env file from
+supabase > Canary > Canary dataset > connect > ORM > prisma
+
+Push your Prisma schema to the Supabase PostgreSQL database:
+
+```bash
+cd backend
+npx prisma db push
+```
+
+Then generate the Prisma client:
+
+```bash
+npx prisma generate
+```
+
+View tables and records using Prisma Studio:
+
+```bash
+npx prisma studio
+```
+
 ### [Read the docs →](https://bun.com/docs)
 
 ## What is Bun?
