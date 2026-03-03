@@ -12,7 +12,6 @@ dotenv_path = Path(__file__).resolve().parent.parent / "backend" / ".env"
 load_dotenv(dotenv_path)
 url: str = os.environ.get("SUPABASE_URL")
 key: str = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-print("key: ", key)
 supabase: Client = create_client(url, key)
 
 client = twikit.Client('en-US')
