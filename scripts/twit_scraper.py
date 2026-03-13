@@ -3,10 +3,9 @@ import json
 import asyncio
 import traceback
 import time
-import requests
 import os
 from pathlib import Path
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 from supabase import create_client, Client
 dotenv_path = Path(__file__).resolve().parent.parent / "backend" / ".env"
 load_dotenv(dotenv_path)
