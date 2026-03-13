@@ -7,7 +7,10 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "import-news": "npx tsx import-news-articles.ts",
+    "import-final-results": "node import-final-results.js",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
