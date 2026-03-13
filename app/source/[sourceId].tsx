@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import {
   ActivityIndicator,
   ScrollView,
@@ -7,12 +8,19 @@ import {
   View,
 } from "react-native";
 
-import { SourceOverviewCard } from "@/components/SourceOverviewCard";
-import { fetchOverview } from "@/lib/api";
-import type { OverviewSource } from "@/lib/types";
+import { FeedEntryCard } from "@/components/FeedEntryCard";
+import { fetchSourceFeed, resolveSourceId } from "@/lib/api";
+import type { FeedItem } from "@/lib/types";
 
-export default function LandingPage() {
-  const [sources, setSources] = useState<OverviewSource[]>([]);
+export default function SourcePage() {
+  const params = useLocalSearchParams<{ sourceId?: string }>();
+  const safeSourceId = useMemo(
+    () => resolveSourceId(params.sourceId || ""),
+    [params.sourceId],
+  );
+
+  const [title, setTitle] = useState("Source Feed");
+  const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,14 +30,15 @@ export default function LandingPage() {
     async function load() {
       try {
         setLoading(true);
-        const data = await fetchOverview();
+        const data = await fetchSourceFeed(safeSourceId);
         if (mounted) {
-          setSources(data.sources);
+          setTitle(`${data.name} Feed`);
+          setItems(data.items);
           setError(null);
         }
       } catch {
         if (mounted) {
-          setError("Could not load data. Is backend running on port 3001?");
+          setError("Could not load source feed.");
         }
       } finally {
         if (mounted) {
@@ -43,14 +52,13 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [safeSourceId]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.pageTitle}>Canary Feed Overview</Text>
-
+      <Text style={styles.pageTitle}>{title}</Text>
       <Text style={styles.pageSubtitle}>
-        Source previews for weather channels, news, and social media.
+        Top five entries currently in the database.
       </Text>
 
       {loading ? <ActivityIndicator size="large" /> : null}
@@ -58,8 +66,8 @@ export default function LandingPage() {
 
       {!loading && !error ? (
         <View style={styles.list}>
-          {sources.map((source) => (
-            <SourceOverviewCard key={source.id} source={source} />
+          {items.map((item) => (
+            <FeedEntryCard key={item.id} item={item} sourceId={safeSourceId} />
           ))}
         </View>
       ) : null}
