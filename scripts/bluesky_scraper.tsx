@@ -1,5 +1,10 @@
 import { Agent, AtpAgentLoginOpts, CredentialSession } from "@atproto/api";
 import { createClient } from "@supabase/supabase-js";
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from "@google/generative-ai";
 import dotenv from "dotenv";
 import path from "path";
 
@@ -18,6 +23,19 @@ const session = new CredentialSession(new URL("https://bsky.social"));
 await session.login(account);
 const agent = new Agent(session);
 
+// Setting up Gemini
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({
+  model: "gemini-3-flash-preview",
+  safetySettings: [
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.BLOCK_NONE,
+    },
+  ],
+});
+
 const QUERIES = [
   "Nashville emergency",
   "Nashville danger",
@@ -28,9 +46,47 @@ const QUERIES = [
 ];
 const SINCE = "2026-01-22T00:00:00Z";
 const UNTIL = "2026-02-02T00:00:00Z";
-const LIMIT = 100; // Bluesky allows up to 100
+
+// Changed this to 2 for free tier testing for Gemini
+const LIMIT = 2; // Bluesky allows up to 100
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// AI summarizer function
+async function getAiSummary(text: string): Promise<string> {
+  if (!text || text.length < 15) return "Post too short to summarize.";
+
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const prompt = `
+        You are an emergency response assistant for a weather app. 
+        Read this social media post about a Nashville storm/emergency. 
+        Summarize the core threat, damage, or actionable info in exactly 1 short sentence. 
+        If it's just irrelevant chatter or opinions, reply with "No actionable emergency info."
+        
+        Post: "${text}"
+      `;
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (err: any) {
+      if (err.status === 503 || err?.message?.includes("timed out")) {
+        console.warn(
+          `Server busy. Retries left: ${retries - 1}. Waiting 10s...`,
+        );
+        await sleep(10000);
+        retries--;
+      } else if (err.status === 429) {
+        console.error("Daily API Quota Exceeded! Returning fallback text.");
+        return "Summary unavailable (Rate Limit).";
+      } else {
+        console.error("Gemini API error:", err.message);
+        return "Summary unavailable.";
+      }
+    }
+  }
+  return "Summary unavailable (Timeout).";
+}
 
 function normalizeItem(item: any) {
   const post = item.post ?? item;
@@ -89,10 +145,24 @@ async function runQuery(q: string) {
         console.log(`query "${q}": no posts returned, stopping`);
         break;
       }
-      const rows = posts.map(normalizeItem);
-      await upsertPosts(rows);
-      total += rows.length;
-      console.log(`fetched ${rows.length} posts; total=${total}`);
+      const rawRows = posts.map(normalizeItem);
+      const rowsWithSummaries = [];
+
+      for (const row of rawRows) {
+        console.log(`Summarizing post by ${row.author}...`);
+        const summary = await getAiSummary(row.raw_text);
+
+        // Attach AI summary to row object
+        rowsWithSummaries.push({ ...row, summary });
+
+        // Speed bump (to ensure we stay under 5 requests per min)
+        console.log("Waiting 15s to respect rate limits...");
+        await sleep(15000);
+      }
+
+      await upsertPosts(rowsWithSummaries);
+      total += rowsWithSummaries.length;
+      console.log(`fetched ${rowsWithSummaries.length} posts; total=${total}`);
       if (!cursor) {
         console.log("no cursor, finished pagination");
         break;

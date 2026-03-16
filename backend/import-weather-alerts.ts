@@ -74,7 +74,7 @@ async function importNashvilleData() {
         } catch (aiError: any) {
           if (aiError.status === 503) {
             console.warn(
-              `⚠️ Server busy (503). Retries left: ${retries - 1}. Waiting 10 seconds to retry...`,
+              `Server busy (503). Retries left: ${retries - 1}. Waiting 10 seconds to retry...`,
             );
             await delay(10000); // Wait 10 seconds before knocking on the door again
             retries--;
