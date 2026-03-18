@@ -62,7 +62,8 @@ async function getAiSummary(text: string): Promise<string> {
       const prompt = `
         You are an emergency response assistant for a weather app. 
         Read this social media post about a Nashville storm/emergency. 
-        Summarize the core threat, damage, or actionable info in exactly 1 short sentence. 
+        Summarize the core threat, damage, and/or actionable info. Do not skip out on important 
+        details that would be relevant to the reader (who is currently in the affected region).
         If it's just irrelevant chatter or opinions, reply with "No actionable emergency info."
         
         Post: "${text}"

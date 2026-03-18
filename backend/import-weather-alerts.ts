@@ -63,7 +63,8 @@ async function importNashvilleData() {
           const prompt = `
             You are a helpful meteorologist for a consumer weather app. 
             Read the following raw National Weather Service bulletin and summarize the most important 
-            threats and timing in 1 to 2 short, easy-to-read sentences. Do not use technical jargon.
+            threats and timing. Do not skip out on important details that would be relevant to the reader 
+            (who is currently in the affected region). Do not use technical jargon.
             
             Raw Bulletin:
             ${rawText}
