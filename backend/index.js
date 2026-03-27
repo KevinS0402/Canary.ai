@@ -63,7 +63,7 @@ async function fetchTopSocial(limit = 5) {
     ...bluesky.map((row) => ({
       kind: "bluesky",
       id: `bluesky-${row.post_cid}`,
-      author: row.author_id || row.author || "social post",
+      author: row.author || row.author_id || "social post",
       body: row.summary || row.raw_text || "",
       subtitle: "Bluesky",
       url: row.url || null,
