@@ -54,7 +54,7 @@ async function fetchTopSocial(limit = 5) {
     ...tweets.map((row) => ({
       kind: "tweet",
       id: `tweet-${row.tweet_id}`,
-      author: row.author_id || row.author || "social post",
+      author: row.author || row.author_id || "social post",
       body: row.summary || row.raw_text || "",
       subtitle: row.location || "X",
       url: row.url || null,
