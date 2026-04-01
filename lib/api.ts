@@ -32,7 +32,7 @@ async function request<T>(path: string): Promise<T> {
 }
 
 export function fetchOverview(): Promise<OverviewResponse> {
-  return request<OverviewResponse>("/overview");
+  return request<OverviewResponse>("/sources/overview");
 }
 
 export function fetchSourceFeed(
