@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -12,27 +13,27 @@ model Bluesky {
   author     String?
   author_id  String?
   raw_text   String?
-  raw_json   Json?     @db.Json
+  raw_json   Json?                  @db.Json
   url        String?
-  created_at DateTime? @db.Timestamptz(6)
+  created_at DateTime?              @db.Timestamptz(6)
   summary    String?
-  post_cid   String    @id @unique
+  post_cid   String                 @id @unique
+  embedding  Unsupported("vector")?
 
   @@map("bluesky")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Tweet {
-  tweet_id        BigInt   @id @unique @default(autoincrement())
-  author          String?
-  location        String?
-  summary         String?
-  raw_text        String?
-  raw_json        Json?    @db.Json
-  url             String?
-  created_at      DateTime @default(now()) @db.Timestamptz(6)
-  relevancy_label Boolean? @default(false)
-  author_id       String?
+  tweet_id   BigInt   @id @unique @default(autoincrement())
+  author     String?
+  location   String?
+  summary    String?
+  raw_text   String?
+  raw_json   Json?    @db.Json
+  url        String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  author_id  String?
 
   @@map("tweets")
 }
@@ -40,24 +41,25 @@ model Tweet {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model WeatherAlert {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   wfo        String
   pil        String
   raw_text   String
   summary    String?
-  issued_at  DateTime? @db.Timestamptz(6)
+  issued_at  DateTime?              @db.Timestamptz(6)
   event_name String?
+  embedding  Unsupported("vector")?
 
   @@map("weather_alerts")
 }
 
 model NewsArticle {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   title       String
-  url         String   @unique
+  url         String    @unique
   publisher   String?
   publishedAt DateTime?
   summary     String?
   description String?
-  importedAt  DateTime @default(now())
+  importedAt  DateTime  @default(now())
 }
