@@ -61,3 +61,50 @@ model NewsArticle {
   description String?
   importedAt  DateTime @default(now())
 }
+
+enum EventStatus {
+  ongoing
+  likely_ongoing
+  ended
+}
+
+enum SourceType {
+  weather
+  social
+  news
+}
+
+model Event {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType   String
+  locationKey String?
+  title       String?
+  status      EventStatus @default(ongoing)
+  startTime   DateTime    @db.Timestamptz(6)
+  lastSeenTime DateTime   @db.Timestamptz(6)
+  endedAt     DateTime?   @db.Timestamptz(6)
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @db.Timestamptz(6)
+
+  sourceLinks EventSourceLink[]
+
+  @@index([status, lastSeenTime(sort: Desc)])
+  @@index([eventType, locationKey])
+  @@map("events")
+}
+
+model EventSourceLink {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId      String     @db.Uuid
+  sourceType   SourceType
+  sourceItemId String
+  matchReason  String?
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @db.Timestamptz(6)
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceType, sourceItemId])
+  @@index([eventId])
+  @@map("event_source_links")
+}
