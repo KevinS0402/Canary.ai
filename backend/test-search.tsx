@@ -28,11 +28,11 @@ async function searchAll(searchQuery: string) {
     // search weather alerts & bluesky posts
     const [weatherMatches, blueskyMatches] = await Promise.all([
       prisma.$queryRawUnsafe<any[]>(
-        `SELECT id, event_name, summary, similarity FROM match_weather_alerts($1::vector, 0.3, 3)`,
+        `SELECT id, event_name, summary, similarity FROM match_weather_alerts($1::vector, 0.3, 5)`,
         vectorString,
       ),
       prisma.$queryRawUnsafe<any[]>(
-        `SELECT post_cid, author, raw_text, similarity FROM match_bluesky($1::vector, 0.3, 3)`,
+        `SELECT post_cid, author, raw_text, similarity FROM match_bluesky($1::vector, 0.3, 5)`,
         vectorString,
       ),
     ]);
