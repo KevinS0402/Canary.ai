@@ -35,6 +35,23 @@ const EVENT_KEYWORDS = [
   "incident",
 ];
 
+const LOCAL_REGION_MATCHERS = [
+  { term: "nashville", key: "nashville" },
+  { term: "davidson county", key: "davidson_county" },
+  { term: "middle tennessee", key: "middle_tennessee" },
+  { term: "tennessee", key: "tennessee" },
+  { term: "southeast", key: "southeast" },
+  { term: "southeastern", key: "southeast" },
+  { term: "sumner county", key: "sumner_county" },
+  { term: "rutherford county", key: "rutherford_county" },
+  { term: "williamson county", key: "williamson_county" },
+  { term: "wilson county", key: "wilson_county" },
+  { term: "montgomery county", key: "montgomery_county" },
+  { term: "cheatham county", key: "cheatham_county" },
+  { term: "robertson county", key: "robertson_county" },
+  { term: "maury county", key: "maury_county" },
+];
+
 function cleanText(value) {
   return (value || "").trim();
 }
@@ -50,6 +67,25 @@ function pickFirst(...values) {
 function hasEventKeyword(text) {
   const lower = text.toLowerCase();
   return EVENT_KEYWORDS.some((term) => lower.includes(term));
+}
+
+function getRegionCategory(...sources) {
+  const combined = sources
+    .map((value) => cleanText(value))
+    .join(" ")
+    .toLowerCase();
+  for (const matcher of LOCAL_REGION_MATCHERS) {
+    if (combined.includes(matcher.term)) {
+      return {
+        locality: "local",
+        locationKey: `local_${matcher.key}`,
+      };
+    }
+  }
+  return {
+    locality: "non_local",
+    locationKey: "non_local",
+  };
 }
 
 function extractLocationFromText(text) {
@@ -100,19 +136,21 @@ function statusFromLastSeen(lastSeenTime, now = new Date()) {
 
 function classifyDocument(doc) {
   const text = pickFirst(doc.title, doc.summary, doc.body, doc.rawText);
-  const locationFromText = extractLocationFromText(text);
+  const regionCategory = getRegionCategory(
+    doc.locationHint,
+    doc.title,
+    doc.summary,
+    doc.body,
+    doc.rawText,
+  );
 
   if (doc.sourceType === "weather") {
-    const weatherLocation = normalizeKey(
-      pickFirst(locationFromText, doc.locationHint),
-    );
-
     return {
       outcome: "event",
       eventType: deriveEventType(pickFirst(doc.eventHint, text)),
-      locationKey: weatherLocation || "weather_unknown",
+      locationKey: regionCategory.locationKey,
       title: pickFirst(doc.eventHint, doc.title, "Weather Event"),
-      matchReason: "weather_rule_match",
+      matchReason: `weather_rule_match_${regionCategory.locality}`,
     };
   }
 
@@ -120,19 +158,12 @@ function classifyDocument(doc) {
     return { outcome: "no_event" };
   }
 
-  const locationKey = normalizeKey(
-    pickFirst(doc.locationHint, locationFromText),
-  );
-  if (!locationKey) {
-    return { outcome: "no_event" };
-  }
-
   return {
     outcome: "event",
     eventType: deriveEventType(text),
-    locationKey,
+    locationKey: regionCategory.locationKey,
     title: pickFirst(doc.title, doc.summary, "Weather-Related Event"),
-    matchReason: "keyword_location_match",
+    matchReason: `keyword_location_match_${regionCategory.locality}`,
   };
 }
 

@@ -17,7 +17,8 @@ model Bluesky {
   created_at DateTime? @db.Timestamptz(6)
   summary    String?
   post_cid   String    @id @unique
-
+  embedding  Unsupported("vector")?
+  
   @@map("bluesky")
 }
 
@@ -47,6 +48,7 @@ model WeatherAlert {
   summary    String?
   issued_at  DateTime? @db.Timestamptz(6)
   event_name String?
+  embedding  Unsupported("vector")?
 
   @@map("weather_alerts")
 }
