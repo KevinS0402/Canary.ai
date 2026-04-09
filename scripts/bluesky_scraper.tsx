@@ -1,14 +1,11 @@
 import { Agent, AtpAgentLoginOpts, CredentialSession } from "@atproto/api";
 import { createClient } from "@supabase/supabase-js";
-import {
-  GoogleGenerativeAI,
-  HarmCategory,
-  HarmBlockThreshold,
-} from "@google/generative-ai";
+import Anthropic from "@anthropic-ai/sdk";
 import dotenv from "dotenv";
 import path from "path";
 
 dotenv.config({ path: path.resolve(__dirname, "..", "backend", ".env") });
+
 const BSKY_PASSWORD: string = process.env.BSKY_PASSWORD || "";
 const SUPABASE_URL = process.env.SUPABASE_URL!;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -23,18 +20,12 @@ const session = new CredentialSession(new URL("https://bsky.social"));
 await session.login(account);
 const agent = new Agent(session);
 
-// Setting up Gemini
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({
-  model: "gemini-3-flash-preview",
-  safetySettings: [
-    {
-      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-      threshold: HarmBlockThreshold.BLOCK_NONE,
-    },
-  ],
-});
+// setting up Claude
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
+if (!ANTHROPIC_API_KEY) {
+  throw new Error("Missing ANTHROPIC_API_KEY! Check your .env file.");
+}
+const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 
 const QUERIES = [
   "Nashville emergency",
@@ -47,7 +38,7 @@ const QUERIES = [
 const SINCE = "2026-01-22T00:00:00Z";
 const UNTIL = "2026-02-02T00:00:00Z";
 
-// Changed this to 2 for free tier testing for Gemini
+// changed this to 2 for testing
 const LIMIT = 2; // Bluesky allows up to 100
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -59,29 +50,27 @@ async function getAiSummary(text: string): Promise<string> {
   let retries = 3;
   while (retries > 0) {
     try {
-      const prompt = `
-        You are an emergency response assistant for a weather app. 
-        Read this social media post about a Nashville storm/emergency. 
-        Summarize the core threat, damage, and/or actionable info. Do not skip out on important 
-        details that would be relevant to the reader (who is currently in the affected region).
-        If it's just irrelevant chatter or opinions, reply with "No actionable emergency info."
-        
-        Post: "${text}"
-      `;
-      const result = await model.generateContent(prompt);
-      return result.response.text().trim();
+      const claudeResponse = await anthropic.messages.create({
+        model: "claude-haiku-4-5",
+        max_tokens: 150,
+        system:
+          "You are an emergency response assistant for a weather app. Read the user's social media post about a Nashville storm/emergency. Summarize the core threat, damage, and/or actionable info. Do not skip out on important details that would be relevant to the reader (who is currently in the affected region). If it's just irrelevant chatter or opinions, reply with \"No actionable emergency info.\"",
+        messages: [{ role: "user", content: `Post: "${text}"` }],
+      });
+
+      return claudeResponse.content[0].type === "text"
+        ? claudeResponse.content[0].text.trim()
+        : "Summary unavailable.";
     } catch (err: any) {
-      if (err.status === 503 || err?.message?.includes("timed out")) {
+      // handle Claude-specific overload (529) or rate limit (429) errors
+      if (err.status === 529 || err.status === 429 || err.status === 503) {
         console.warn(
-          `Server busy. Retries left: ${retries - 1}. Waiting 10s...`,
+          `Server busy or rate limited (${err.status}). Retries left: ${retries - 1}. Waiting 10s...`,
         );
         await sleep(10000);
         retries--;
-      } else if (err.status === 429) {
-        console.error("Daily API Quota Exceeded! Returning fallback text.");
-        return "Summary unavailable (Rate Limit).";
       } else {
-        console.error("Gemini API error:", err.message);
+        console.error("Claude API error:", err.message);
         return "Summary unavailable.";
       }
     }
@@ -104,7 +93,6 @@ function normalizeItem(item: any) {
     handle && postId
       ? `https://bsky.app/profile/${handle}/post/${postId}`
       : uri;
-  console.log(url);
   return {
     post_cid: cid,
     created_at: createdAt,
@@ -153,12 +141,12 @@ async function runQuery(q: string) {
         console.log(`Summarizing post by ${row.author}...`);
         const summary = await getAiSummary(row.raw_text);
 
-        // Attach AI summary to row object
+        // attach AI summary to row object
         rowsWithSummaries.push({ ...row, summary });
 
-        // Speed bump (to ensure we stay under 5 requests per min)
-        console.log("Waiting 15s to respect rate limits...");
-        await sleep(15000);
+        // speed bump adjusted for Claude Haiku's speed and limits
+        console.log("Waiting 3s to respect rate limits...");
+        await sleep(3000);
       }
 
       await upsertPosts(rowsWithSummaries);
