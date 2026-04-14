@@ -10,9 +10,12 @@ import {
 
 import { FeedEntryCard } from "@/components/FeedEntryCard";
 import { fetchSourceFeed, resolveSourceId } from "@/lib/api";
+import { filterFeedItemsByCutoffDate } from "@/lib/date-filter";
+import { useSettings } from "@/lib/settings-context";
 import type { FeedItem } from "@/lib/types";
 
 export default function SourcePage() {
+  const { selectedDate } = useSettings();
   const params = useLocalSearchParams<{ sourceId?: string }>();
   const safeSourceId = useMemo(
     () => resolveSourceId(params.sourceId || ""),
@@ -23,6 +26,7 @@ export default function SourcePage() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filteredItems = filterFeedItemsByCutoffDate(items, selectedDate);
 
   useEffect(() => {
     let mounted = true;
@@ -66,7 +70,12 @@ export default function SourcePage() {
 
       {!loading && !error ? (
         <View style={styles.list}>
-          {items.map((item) => (
+          {filteredItems.length === 0 ? (
+            <Text style={styles.emptyState}>
+              No entries are available on or before the selected date.
+            </Text>
+          ) : null}
+          {filteredItems.map((item) => (
             <FeedEntryCard key={item.id} item={item} sourceId={safeSourceId} />
           ))}
         </View>
@@ -96,5 +105,8 @@ const styles = StyleSheet.create({
   },
   error: {
     color: "#B3261E",
+  },
+  emptyState: {
+    color: "#757575",
   },
 });
