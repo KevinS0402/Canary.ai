@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -8,19 +7,36 @@ import {
   View,
 } from "react-native";
 
+import { useSettings } from "@/lib/settings-context";
+
 export default function AlertCard() {
   const [location, setLocation] = useState("");
-  const [date, setDate] = useState("");
+  const { selectedDate, setSelectedDate, clearSelectedDate } = useSettings();
   const [severe, setSevere] = useState(true);
   const [safety, setSafety] = useState(true);
   const [national, setNational] = useState(true);
 
-  // New source toggles (selected by default)
   const [weatherSource, setWeatherSource] = useState(true);
   const [socialSource, setSocialSource] = useState(true);
   const [newsSource, setNewsSource] = useState(true);
 
   const toggle = (setter: (v: boolean) => void, v: boolean) => setter(!v);
+
+  const dateInputValue = selectedDate
+    ? selectedDate.toISOString().slice(0, 10)
+    : "";
+
+  function onDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    if (!value) {
+      clearSelectedDate();
+      return;
+    }
+    const parsed = new Date(`${value}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) {
+      setSelectedDate(parsed);
+    }
+  }
 
   return (
     <View style={styles.card}>
@@ -37,13 +53,29 @@ export default function AlertCard() {
 
       <View style={[styles.row, { marginTop: 12 }]}>
         <Text style={styles.label}>Date (for testing)</Text>
+        {selectedDate ? (
+          <TouchableOpacity onPress={clearSelectedDate}>
+            <Text style={styles.clearLink}>Clear</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Type date here."
-        placeholderTextColor="#BDBDBD"
-        value={date}
-        onChangeText={setDate}
+      <input
+        type="date"
+        value={dateInputValue}
+        max={new Date().toISOString().slice(0, 10)}
+        onChange={onDateChange}
+        aria-label="Pick filter date"
+        style={{
+          borderRadius: 6,
+          border: "1px solid #EAEAEA",
+          padding: "10px 12px",
+          backgroundColor: "#FFF",
+          height: 42,
+          color: "#111",
+          fontSize: 14,
+          boxSizing: "border-box",
+          width: "100%",
+        }}
       />
 
       <View style={styles.sourcesSection}>
@@ -152,7 +184,7 @@ export default function AlertCard() {
           // save handler: collect selections here
           const payload = {
             location,
-            date,
+            date: selectedDate ? selectedDate.toISOString() : null,
             categories: { severe, safety, national },
             sources: {
               weather: weatherSource,
@@ -177,15 +209,6 @@ const styles = StyleSheet.create({
     borderColor: "#E6E6E6",
     padding: 16,
     width: "100%",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 2 },
-    }),
   },
   row: {
     flexDirection: "row",
@@ -202,6 +225,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     height: 42,
     color: "#111",
+    justifyContent: "center",
+  },
+  clearLink: {
+    color: "#999",
+    fontSize: 12,
+    fontWeight: "600",
   },
   sourcesSection: { marginTop: 12 },
   sourcesHeader: { fontSize: 13, color: "#666", marginBottom: 8 },

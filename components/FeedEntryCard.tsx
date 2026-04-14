@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { fetchSourceItemDetail } from "@/lib/api";
+import { formatTimestamp } from "@/lib/date-filter";
 import type { FeedItem, SourceId } from "@/lib/types";
 
 type Props = {
@@ -18,6 +19,7 @@ export function FeedEntryCard({ item, sourceId }: Props) {
   const [fullBodyError, setFullBodyError] = useState<string | null>(null);
 
   const displayBody = expanded ? fullBody || item.body : item.body;
+  const formattedDate = formatTimestamp(item.timestamp);
 
   async function openSource() {
     if (!item.url) return;
@@ -52,6 +54,9 @@ export function FeedEntryCard({ item, sourceId }: Props) {
     <View style={styles.card}>
       <View style={styles.textBlock}>
         <Text style={styles.title}>{item.title}</Text>
+        {formattedDate ? (
+          <Text style={styles.metaText}>{formattedDate}</Text>
+        ) : null}
         <Text numberOfLines={expanded ? undefined : 4} style={styles.body}>
           {displayBody}
         </Text>

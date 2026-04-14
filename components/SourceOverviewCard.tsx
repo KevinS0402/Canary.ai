@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { formatTimestamp } from "@/lib/date-filter";
 import type { OverviewSource } from "@/lib/types";
 
 type Props = {
@@ -10,7 +11,12 @@ type Props = {
 export function SourceOverviewCard({ source }: Props) {
   const previewText =
     source.preview.length > 0
-      ? source.preview.map((entry) => entry.title).join("\n")
+      ? source.preview
+          .map((entry) => {
+            const date = formatTimestamp(entry.timestamp);
+            return date ? `${entry.title} — ${date}` : entry.title;
+          })
+          .join("\n")
       : "No entries found yet.";
 
   return (
