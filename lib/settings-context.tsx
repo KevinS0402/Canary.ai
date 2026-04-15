@@ -7,8 +7,8 @@ import {
 } from "react";
 
 type SettingsContextValue = {
-  selectedDate: Date | null;
-  setSelectedDate: (date: Date | null) => void;
+  selectedDate: string | null;
+  setSelectedDate: (date: string | null) => void;
   clearSelectedDate: () => void;
 };
 
@@ -21,7 +21,7 @@ type SettingsProviderProps = {
 };
 
 export function SettingsProvider({ children }: SettingsProviderProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const value = useMemo<SettingsContextValue>(
     () => ({

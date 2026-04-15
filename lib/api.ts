@@ -21,6 +21,14 @@ const API_BASE_URL = normalizedBaseUrl.endsWith("/api")
   ? normalizedBaseUrl
   : `${normalizedBaseUrl}/api`;
 
+function buildQuery(params: Record<string, string | undefined>) {
+  const entries = Object.entries(params).filter(
+    (pair): pair is [string, string] => pair[1] !== undefined,
+  );
+  if (entries.length === 0) return "";
+  return `?${new URLSearchParams(entries).toString()}`;
+}
+
 async function request<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`);
 
@@ -31,14 +39,19 @@ async function request<T>(path: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function fetchOverview(): Promise<OverviewResponse> {
-  return request<OverviewResponse>("/sources/overview");
+export function fetchOverview(
+  before?: string | null,
+): Promise<OverviewResponse> {
+  const qs = buildQuery({ before: before || undefined });
+  return request<OverviewResponse>(`/sources/overview${qs}`);
 }
 
 export function fetchSourceFeed(
   sourceId: SourceId,
+  before?: string | null,
 ): Promise<SourceFeedResponse> {
-  return request<SourceFeedResponse>(`/sources/${sourceId}`);
+  const qs = buildQuery({ before: before || undefined });
+  return request<SourceFeedResponse>(`/sources/${sourceId}${qs}`);
 }
 
 export function fetchSourceItemDetail(

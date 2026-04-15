@@ -15,25 +15,18 @@ import {
 
 const router = express.Router();
 
-function parseBeforeDate(raw) {
+function validateDateParam(raw) {
   if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
-  const d = new Date(`${raw}T23:59:59.999Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function parseBeforeDateNaive(raw) {
-  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
-  return new Date(`${raw}T23:59:59.999`);
+  return raw;
 }
 
 router.get("/overview", async (req, res) => {
   try {
-    const before = parseBeforeDate(req.query.before);
-    const beforeNaive = parseBeforeDateNaive(req.query.before);
+    const beforeDate = validateDateParam(req.query.before);
     const [weatherRows, newsRows, socialRows] = await Promise.all([
-      safeFetch(() => fetchTopWeather(5, before), "weather rows"),
-      safeFetch(() => fetchTopNews(5, beforeNaive), "news rows"),
-      safeFetch(() => fetchTopSocial(5, before), "social rows"),
+      safeFetch(() => fetchTopWeather(5, beforeDate), "weather rows"),
+      safeFetch(() => fetchTopNews(5, beforeDate), "news rows"),
+      safeFetch(() => fetchTopSocial(5, beforeDate), "social rows"),
     ]);
 
     const weatherItems = mapWeather(weatherRows);
@@ -70,13 +63,12 @@ router.get("/overview", async (req, res) => {
 
 router.get("/:sourceId", async (req, res) => {
   const sourceId = normalizeSourceId(req.params.sourceId);
-  const before = parseBeforeDate(req.query.before);
-  const beforeNaive = parseBeforeDateNaive(req.query.before);
+  const beforeDate = validateDateParam(req.query.before);
 
   try {
     if (sourceId === "weather") {
       const weatherRows = await safeFetch(
-        () => fetchTopWeather(5, before),
+        () => fetchTopWeather(5, beforeDate),
         "weather rows",
       );
       return res.json({
@@ -88,7 +80,7 @@ router.get("/:sourceId", async (req, res) => {
 
     if (sourceId === "news") {
       const newsRows = await safeFetch(
-        () => fetchTopNews(5, beforeNaive),
+        () => fetchTopNews(5, beforeDate),
         "news rows",
       );
       return res.json({
@@ -100,7 +92,7 @@ router.get("/:sourceId", async (req, res) => {
 
     if (sourceId === "social") {
       const socialRows = await safeFetch(
-        () => fetchTopSocial(5, before),
+        () => fetchTopSocial(5, beforeDate),
         "social rows",
       );
       return res.json({

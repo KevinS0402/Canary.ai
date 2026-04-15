@@ -22,20 +22,13 @@ export default function AlertCard() {
 
   const toggle = (setter: (v: boolean) => void, v: boolean) => setter(!v);
 
-  const dateInputValue = selectedDate
-    ? selectedDate.toISOString().slice(0, 10)
-    : "";
-
   function onDateChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
     if (!value) {
       clearSelectedDate();
       return;
     }
-    const parsed = new Date(`${value}T00:00:00`);
-    if (!Number.isNaN(parsed.getTime())) {
-      setSelectedDate(parsed);
-    }
+    setSelectedDate(value);
   }
 
   return (
@@ -61,7 +54,7 @@ export default function AlertCard() {
       </View>
       <input
         type="date"
-        value={dateInputValue}
+        value={selectedDate || ""}
         max={new Date().toISOString().slice(0, 10)}
         onChange={onDateChange}
         aria-label="Pick filter date"
@@ -184,7 +177,7 @@ export default function AlertCard() {
           // save handler: collect selections here
           const payload = {
             location,
-            date: selectedDate ? selectedDate.toISOString() : null,
+            date: selectedDate,
             categories: { severe, safety, national },
             sources: {
               weather: weatherSource,

@@ -10,7 +10,6 @@ import {
 
 import { SourceOverviewCard } from "@/components/SourceOverviewCard";
 import { fetchOverview } from "@/lib/api";
-import { filterFeedItemsByCutoffDate } from "@/lib/date-filter";
 import { useSettings } from "@/lib/settings-context";
 import type { OverviewSource } from "@/lib/types";
 
@@ -21,28 +20,13 @@ export default function LandingPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  const filteredSources = sources
-    .map((source) => {
-      const filteredPreview = filterFeedItemsByCutoffDate(
-        source.preview,
-        selectedDate,
-      );
-
-      return {
-        ...source,
-        preview: filteredPreview,
-        totalCount: filteredPreview.length,
-      };
-    })
-    .filter((source) => source.totalCount > 0 || !selectedDate);
-
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       try {
         setLoading(true);
-        const data = await fetchOverview();
+        const data = await fetchOverview(selectedDate);
         if (mounted) {
           setSources(data.sources);
           setError(null);
@@ -63,7 +47,7 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [selectedDate]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -86,13 +70,13 @@ export default function LandingPage() {
             placeholder="What's happening?"
             placeholderTextColor="#757575"
           ></TextInput>
-          {filteredSources.length === 0 ? (
+          {sources.length === 0 && selectedDate ? (
             <Text style={styles.emptyState}>
               No entries are available on or before the selected date.
             </Text>
           ) : null}
           <View style={styles.list}>
-            {filteredSources.map((source) => (
+            {sources.map((source) => (
               <SourceOverviewCard key={source.id} source={source} />
             ))}
           </View>
