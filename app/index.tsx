@@ -115,24 +115,6 @@ export default function LandingPage() {
       {!loading && !error ? (
         <>
           <Text style={styles.pageHeader}>Ask a question</Text>
-<<<<<<< HEAD
-          <TextInput
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="What's happening?"
-            placeholderTextColor="#757575"
-          ></TextInput>
-          {sources.length === 0 && selectedDate ? (
-            <Text style={styles.emptyState}>
-              No entries are available on or before the selected date.
-            </Text>
-          ) : null}
-          <View style={styles.list}>
-            {sources.map((source) => (
-              <SourceOverviewCard key={source.id} source={source} />
-            ))}
-=======
 
           {/* search bar container with clear button AND search button */}
           <View style={styles.searchRow}>
@@ -162,7 +144,6 @@ export default function LandingPage() {
             >
               <Text style={styles.searchButtonText}>Search</Text>
             </TouchableOpacity>
->>>>>>> 7872e4a (completed search function which displays results ordered in relevancy, added search bar for intuitive searching, added expand option to show full text)
           </View>
 
           {isSearching ? (
@@ -182,7 +163,6 @@ export default function LandingPage() {
                   {searchResults.weather.map((item: any) => (
                     <View key={item.id} style={styles.resultCard}>
                       <Text style={styles.resultTitle}>{item.event_name}</Text>
-                      {/* expandabletext */}
                       <ExpandableText text={item.summary} />
                     </View>
                   ))}
@@ -241,6 +221,14 @@ export default function LandingPage() {
             </View>
           ) : (
             <View style={styles.list}>
+              {/* Empty State from the Main Branch */}
+              {sources.length === 0 && selectedDate ? (
+                <Text style={styles.emptyState}>
+                  No entries are available on or before the selected date.
+                </Text>
+              ) : null}
+
+              {/* Default Overview Cards */}
               {sources.map((source) => (
                 <SourceOverviewCard key={source.id} source={source} />
               ))}
@@ -280,10 +268,9 @@ const styles = StyleSheet.create({
   error: {
     color: "#B3261E",
   },
-<<<<<<< HEAD
   emptyState: {
     color: "#757575",
-=======
+  },
   // NEW: Search Row Layout
   searchRow: {
     flexDirection: "row",
@@ -292,17 +279,16 @@ const styles = StyleSheet.create({
   },
   // search bar styles
   searchContainer: {
-    flex: 1, // Tells the input to take up the remaining space next to the button
+    flex: 1,
     position: "relative",
     justifyContent: "center",
->>>>>>> 7872e4a (completed search function which displays results ordered in relevancy, added search bar for intuitive searching, added expand option to show full text)
   },
   searchInput: {
     backgroundColor: "#FFFFFF",
     borderRadius: 8,
     paddingVertical: 10,
     paddingLeft: 12,
-    paddingRight: 40, // Make room for the clear icon
+    paddingRight: 40,
     borderColor: "#E0E0E0",
     borderWidth: 1,
     height: 44,
@@ -319,7 +305,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  // NEW: Search Button Styles
+  // search button styles
   searchButton: {
     backgroundColor: "#0066CC",
     height: 44,
