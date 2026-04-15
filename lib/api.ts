@@ -69,3 +69,8 @@ export function resolveSourceId(sourceId: string): SourceId {
   }
   return "news";
 }
+
+// semantic search fetch
+export function fetchSearchResults(query: string): Promise<any> {
+  return request<any>(`/search?q=${encodeURIComponent(query)}`);
+}
