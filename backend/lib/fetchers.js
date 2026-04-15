@@ -9,8 +9,10 @@ export async function safeFetch(fetcher, label) {
   }
 }
 
-export async function fetchTopNews(limit = 5, before = null) {
-  const where = before ? { publishedAt: { lte: before } } : {};
+export async function fetchTopNews(limit = 5, beforeDate = null) {
+  const where = beforeDate
+    ? { publishedAt: { lte: new Date(`${beforeDate}T23:59:59.999Z`) } }
+    : {};
   return prisma.newsArticle.findMany({
     where,
     take: limit,
@@ -18,10 +20,11 @@ export async function fetchTopNews(limit = 5, before = null) {
   });
 }
 
-export async function fetchTopSocial(limit = 5, before = null) {
-  const tweetWhere = before ? { created_at: { lte: before } } : {};
-  const blueskyWhere = before
-    ? { OR: [{ created_at: { lte: before } }, { created_at: null }] }
+export async function fetchTopSocial(limit = 5, beforeDate = null) {
+  const cutoff = beforeDate ? new Date(`${beforeDate}T23:59:59.999Z`) : null;
+  const tweetWhere = cutoff ? { created_at: { lte: cutoff } } : {};
+  const blueskyWhere = cutoff
+    ? { OR: [{ created_at: { lte: cutoff } }, { created_at: null }] }
     : {};
 
   const tweets = await prisma.tweet.findMany({
@@ -66,9 +69,10 @@ export async function fetchTopSocial(limit = 5, before = null) {
   return combined.slice(0, limit);
 }
 
-export async function fetchTopWeather(limit = 5, before = null) {
-  const where = before
-    ? { OR: [{ issued_at: { lte: before } }, { issued_at: null }] }
+export async function fetchTopWeather(limit = 5, beforeDate = null) {
+  const cutoff = beforeDate ? new Date(`${beforeDate}T23:59:59.999Z`) : null;
+  const where = cutoff
+    ? { OR: [{ issued_at: { lte: cutoff } }, { issued_at: null }] }
     : {};
   return prisma.weatherAlert.findMany({
     where,

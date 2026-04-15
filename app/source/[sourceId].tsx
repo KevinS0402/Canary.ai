@@ -10,7 +10,6 @@ import {
 
 import { FeedEntryCard } from "@/components/FeedEntryCard";
 import { fetchSourceFeed, resolveSourceId } from "@/lib/api";
-import { filterFeedItemsByCutoffDate } from "@/lib/date-filter";
 import { useSettings } from "@/lib/settings-context";
 import type { FeedItem } from "@/lib/types";
 
@@ -26,7 +25,6 @@ export default function SourcePage() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const filteredItems = filterFeedItemsByCutoffDate(items, selectedDate);
 
   useEffect(() => {
     let mounted = true;
@@ -34,7 +32,7 @@ export default function SourcePage() {
     async function load() {
       try {
         setLoading(true);
-        const data = await fetchSourceFeed(safeSourceId);
+        const data = await fetchSourceFeed(safeSourceId, selectedDate);
         if (mounted) {
           setTitle(`${data.name} Feed`);
           setItems(data.items);
@@ -56,7 +54,7 @@ export default function SourcePage() {
     return () => {
       mounted = false;
     };
-  }, [safeSourceId]);
+  }, [safeSourceId, selectedDate]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -70,12 +68,12 @@ export default function SourcePage() {
 
       {!loading && !error ? (
         <View style={styles.list}>
-          {filteredItems.length === 0 ? (
+          {items.length === 0 && selectedDate ? (
             <Text style={styles.emptyState}>
               No entries are available on or before the selected date.
             </Text>
           ) : null}
-          {filteredItems.map((item) => (
+          {items.map((item) => (
             <FeedEntryCard key={item.id} item={item} sourceId={safeSourceId} />
           ))}
         </View>
