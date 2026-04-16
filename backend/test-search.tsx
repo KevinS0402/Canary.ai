@@ -11,7 +11,7 @@ const embeddingModel = genAI.getGenerativeModel({
 });
 
 async function searchAll(searchQuery: string) {
-  console.log(`\n🔎 Embedding Search Query: "${searchQuery}"...`);
+  console.log(`\n Embedding Search Query: "${searchQuery}"...`);
 
   try {
     // convert user input into vector
@@ -24,7 +24,7 @@ async function searchAll(searchQuery: string) {
     const vectorString = `[${queryVector.join(",")}]`;
 
     console.log(
-      "⚡ Vector generated. Searching all 4 databases simultaneously...\n",
+      " Vector generated. Searching all 4 databases simultaneously...\n",
     );
 
     // search ALL tables at the exact same time
@@ -34,8 +34,9 @@ async function searchAll(searchQuery: string) {
           `SELECT id, event_name, summary, similarity FROM match_weather_alerts($1::vector, 0.3, 5)`,
           vectorString,
         ),
+        // UPDATED: Added 'summary' to the Bluesky query
         prisma.$queryRawUnsafe<any[]>(
-          `SELECT post_cid, author, raw_text, similarity FROM match_bluesky($1::vector, 0.3, 5)`,
+          `SELECT post_cid, author, raw_text, summary, similarity FROM match_bluesky($1::vector, 0.3, 5)`,
           vectorString,
         ),
         prisma.$queryRawUnsafe<any[]>(
@@ -50,7 +51,7 @@ async function searchAll(searchQuery: string) {
 
     // print relevant weather alerts
     console.log("=========================================");
-    console.log("WEATHER ALERTS");
+    console.log(" WEATHER ALERTS");
     console.log("=========================================");
     if (weatherMatches.length === 0) {
       console.log("No relevant weather alerts found.");
@@ -59,13 +60,13 @@ async function searchAll(searchQuery: string) {
         const percent = (match.similarity * 100).toFixed(1);
         console.log(`\n[${index + 1}] Match: ${percent}%`);
         console.log(`Event: ${match.event_name}`);
-        console.log(`Summary: ${match.summary}`);
+        console.log(`Claude Summary: ${match.summary}`);
       });
     }
 
     // print relevant bluesky posts
     console.log("\n=========================================");
-    console.log("BLUESKY POSTS");
+    console.log(" BLUESKY POSTS");
     console.log("=========================================");
     if (blueskyMatches.length === 0) {
       console.log("No relevant Bluesky posts found.");
@@ -75,12 +76,13 @@ async function searchAll(searchQuery: string) {
         console.log(`\n[${index + 1}] Match: ${percent}%`);
         console.log(`Author: @${match.author}`);
         console.log(`Post: ${match.raw_text}`);
+        console.log(`Claude Summary: ${match.summary}`); // <--- Added here!
       });
     }
 
     // print relevant tweets
     console.log("\n=========================================");
-    console.log("TWEETS");
+    console.log(" TWEETS");
     console.log("=========================================");
     if (tweetMatches.length === 0) {
       console.log("No relevant tweets found.");
@@ -96,7 +98,7 @@ async function searchAll(searchQuery: string) {
 
     // print relevant news articles
     console.log("\n=========================================");
-    console.log("NEWS ARTICLES");
+    console.log(" NEWS ARTICLES");
     console.log("=========================================");
     if (newsMatches.length === 0) {
       console.log("No relevant news articles found.");
@@ -117,5 +119,4 @@ async function searchAll(searchQuery: string) {
 }
 
 // test queries here
-
 searchAll("When will roads be safe to drive on after the snowstorm?");
