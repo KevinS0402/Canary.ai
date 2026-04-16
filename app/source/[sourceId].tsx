@@ -10,9 +10,11 @@ import {
 
 import { FeedEntryCard } from "@/components/FeedEntryCard";
 import { fetchSourceFeed, resolveSourceId } from "@/lib/api";
+import { useSettings } from "@/lib/settings-context";
 import type { FeedItem } from "@/lib/types";
 
 export default function SourcePage() {
+  const { selectedDate } = useSettings();
   const params = useLocalSearchParams<{ sourceId?: string }>();
   const safeSourceId = useMemo(
     () => resolveSourceId(params.sourceId || ""),
@@ -30,7 +32,7 @@ export default function SourcePage() {
     async function load() {
       try {
         setLoading(true);
-        const data = await fetchSourceFeed(safeSourceId);
+        const data = await fetchSourceFeed(safeSourceId, selectedDate);
         if (mounted) {
           setTitle(`${data.name} Feed`);
           setItems(data.items);
@@ -52,7 +54,7 @@ export default function SourcePage() {
     return () => {
       mounted = false;
     };
-  }, [safeSourceId]);
+  }, [safeSourceId, selectedDate]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -66,6 +68,11 @@ export default function SourcePage() {
 
       {!loading && !error ? (
         <View style={styles.list}>
+          {items.length === 0 && selectedDate ? (
+            <Text style={styles.emptyState}>
+              No entries are available on or before the selected date.
+            </Text>
+          ) : null}
           {items.map((item) => (
             <FeedEntryCard key={item.id} item={item} sourceId={safeSourceId} />
           ))}
@@ -96,5 +103,8 @@ const styles = StyleSheet.create({
   },
   error: {
     color: "#B3261E",
+  },
+  emptyState: {
+    color: "#757575",
   },
 });

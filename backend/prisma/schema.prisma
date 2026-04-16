@@ -34,6 +34,7 @@ model Tweet {
   url        String?
   created_at DateTime @default(now()) @db.Timestamptz(6)
   author_id  String?
+  embedding  Unsupported("vector(768)")?
 
   @@map("tweets")
 }
@@ -62,6 +63,7 @@ model NewsArticle {
   summary     String?
   description String?
   importedAt  DateTime  @default(now())
+  embedding   Unsupported("vector(768)")?
 }
 
 enum EventStatus {

@@ -15,12 +15,18 @@ import {
 
 const router = express.Router();
 
-router.get("/overview", async (_req, res) => {
+function validateDateParam(raw) {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  return raw;
+}
+
+router.get("/overview", async (req, res) => {
   try {
+    const beforeDate = validateDateParam(req.query.before);
     const [weatherRows, newsRows, socialRows] = await Promise.all([
-      safeFetch(() => fetchTopWeather(5), "weather rows"),
-      safeFetch(() => fetchTopNews(5), "news rows"),
-      safeFetch(() => fetchTopSocial(5), "social rows"),
+      safeFetch(() => fetchTopWeather(5, beforeDate), "weather rows"),
+      safeFetch(() => fetchTopNews(5, beforeDate), "news rows"),
+      safeFetch(() => fetchTopSocial(5, beforeDate), "social rows"),
     ]);
 
     const weatherItems = mapWeather(weatherRows);
@@ -57,11 +63,12 @@ router.get("/overview", async (_req, res) => {
 
 router.get("/:sourceId", async (req, res) => {
   const sourceId = normalizeSourceId(req.params.sourceId);
+  const beforeDate = validateDateParam(req.query.before);
 
   try {
     if (sourceId === "weather") {
       const weatherRows = await safeFetch(
-        () => fetchTopWeather(5),
+        () => fetchTopWeather(5, beforeDate),
         "weather rows",
       );
       return res.json({
@@ -72,7 +79,10 @@ router.get("/:sourceId", async (req, res) => {
     }
 
     if (sourceId === "news") {
-      const newsRows = await safeFetch(() => fetchTopNews(5), "news rows");
+      const newsRows = await safeFetch(
+        () => fetchTopNews(5, beforeDate),
+        "news rows",
+      );
       return res.json({
         id: "news",
         name: "News",
@@ -82,7 +92,7 @@ router.get("/:sourceId", async (req, res) => {
 
     if (sourceId === "social") {
       const socialRows = await safeFetch(
-        () => fetchTopSocial(5),
+        () => fetchTopSocial(5, beforeDate),
         "social rows",
       );
       return res.json({

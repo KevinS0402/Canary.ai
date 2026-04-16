@@ -1,23 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Anthropic from "@anthropic-ai/sdk";
+import dotenv from "dotenv";
 
-// created a speed bump to ensure we're not going over the limit
+dotenv.config({ path: "../.env" });
+
+// speed bump
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// initializing supabase
+// initializing supabase and claude
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const geminiKey = process.env.GEMINI_API_KEY;
+const anthropicKey = process.env.ANTHROPIC_API_KEY;
 
-if (!supabaseUrl || !supabaseKey || !geminiKey) {
+if (!supabaseUrl || !supabaseKey || !anthropicKey) {
   throw new Error("Missing credentials! Check your .env file.");
 }
 
-// initializing supabase and gemini
 const supabase = createClient(supabaseUrl, supabaseKey);
-const genAI = new GoogleGenerativeAI(geminiKey);
-// We use the 'flash' model because it is incredibly fast and cheap for text tasks
-const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+const anthropic = new Anthropic({ apiKey: anthropicKey });
 
 async function importNashvilleData() {
   console.log("Fetching historical winter storm data for Nashville...");
@@ -42,7 +42,7 @@ async function importNashvilleData() {
     }
 
     console.log(
-      `Found ${alerts.length} historical alerts. Starting AI summarization and import...`,
+      `Found ${alerts.length} historical alerts. Starting Claude summarization and import...`,
     );
 
     // loop through and insert each one into Supabase
@@ -53,38 +53,44 @@ async function importNashvilleData() {
         issued_at = `2026-01-${match[1]}T${match[2]}:${match[3]}:00Z`;
       }
 
-      // --- NEW Gemini AI Step (for summaries) ---
+      // Claude for summaries
       console.log(`Generating summary for alert issued at ${issued_at}...`);
       let aiSummary = "Summary unavailable.";
       let retries = 3;
 
       while (retries > 0) {
         try {
-          const prompt = `
-            You are a helpful meteorologist for a consumer weather app. 
-            Read the following raw National Weather Service bulletin and summarize the most important 
-            threats and timing. Do not skip out on important details that would be relevant to the reader 
-            (who is currently in the affected region). Do not use technical jargon.
-            
-            Raw Bulletin:
-            ${rawText}
-          `;
-          const result = await model.generateContent(prompt);
-          aiSummary = result.response.text().trim();
-          break; // Success! Break out of the retry loop.
+          const claudeResponse = await anthropic.messages.create({
+            model: "claude-haiku-4-5",
+            max_tokens: 250,
+            system:
+              "You are a helpful meteorologist for a consumer weather app. Read the following raw National Weather Service bulletin and summarize the most important threats and timing. Do not skip out on important details that would be relevant to the reader (who is currently in the affected region). Do not use technical jargon.",
+            messages: [{ role: "user", content: `Raw Bulletin:\n${rawText}` }],
+          });
+
+          aiSummary =
+            claudeResponse.content[0].type === "text"
+              ? claudeResponse.content[0].text
+              : "Summary unavailable.";
+          break; // if success, break out of the retry loop.
         } catch (aiError: any) {
-          if (aiError.status === 503) {
+          // claude throws 529 for overloaded or 429 for rate limits
+          if (
+            aiError.status === 529 ||
+            aiError.status === 429 ||
+            aiError.status === 503
+          ) {
             console.warn(
-              `Server busy (503). Retries left: ${retries - 1}. Waiting 10 seconds to retry...`,
+              `Server busy or rate limited (${aiError.status}). Retries left: ${retries - 1}. Waiting 10 seconds to retry...`,
             );
-            await delay(10000); // Wait 10 seconds before knocking on the door again
+            await delay(10000); // Wait 10 seconds
             retries--;
           } else {
             console.error(
-              "Gemini API failed with a different error:",
+              "Claude API failed with a different error:",
               aiError.message,
             );
-            break; // If it is a different error (like a safety block), give up and move on
+            break; // if it's a different error, move to next
           }
         }
       }
@@ -102,13 +108,13 @@ async function importNashvilleData() {
         console.error(`Error inserting alert:`, error.message);
       } else {
         console.log(
-          `Successfully inserted alert from ${issued_at} with AI summary!`,
+          `Successfully inserted alert from ${issued_at} with Claude summary!`,
         );
       }
 
-      // wait before requesting the AI summary for the next one
-      console.log("Waiting 15 seconds to respect Gemini API rate limits...");
-      await delay(15000);
+      // wait before requesting AI summary for next alert
+      console.log("Waiting 3 seconds to respect Anthropic API rate limits...");
+      await delay(3000);
     }
 
     console.log(

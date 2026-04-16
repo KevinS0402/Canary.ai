@@ -9,20 +9,32 @@ export async function safeFetch(fetcher, label) {
   }
 }
 
-export async function fetchTopNews(limit = 5) {
+export async function fetchTopNews(limit = 5, beforeDate = null) {
+  const where = beforeDate
+    ? { publishedAt: { lte: new Date(`${beforeDate}T23:59:59.999Z`) } }
+    : {};
   return prisma.newsArticle.findMany({
+    where,
     take: limit,
     orderBy: [{ publishedAt: "desc" }, { importedAt: "desc" }],
   });
 }
 
-export async function fetchTopSocial(limit = 5) {
+export async function fetchTopSocial(limit = 5, beforeDate = null) {
+  const cutoff = beforeDate ? new Date(`${beforeDate}T23:59:59.999Z`) : null;
+  const tweetWhere = cutoff ? { created_at: { lte: cutoff } } : {};
+  const blueskyWhere = cutoff
+    ? { OR: [{ created_at: { lte: cutoff } }, { created_at: null }] }
+    : {};
+
   const tweets = await prisma.tweet.findMany({
+    where: tweetWhere,
     take: limit,
     orderBy: [{ created_at: "desc" }],
   });
 
   const bluesky = await prisma.bluesky.findMany({
+    where: blueskyWhere,
     take: limit,
     orderBy: [{ created_at: "desc" }],
   });
@@ -57,8 +69,13 @@ export async function fetchTopSocial(limit = 5) {
   return combined.slice(0, limit);
 }
 
-export async function fetchTopWeather(limit = 5) {
+export async function fetchTopWeather(limit = 5, beforeDate = null) {
+  const cutoff = beforeDate ? new Date(`${beforeDate}T23:59:59.999Z`) : null;
+  const where = cutoff
+    ? { OR: [{ issued_at: { lte: cutoff } }, { issued_at: null }] }
+    : {};
   return prisma.weatherAlert.findMany({
+    where,
     take: limit,
     orderBy: [{ issued_at: "desc" }],
   });
