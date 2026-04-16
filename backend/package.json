@@ -10,9 +10,10 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "import-news": "npx tsx import-news-articles.ts",
     "import-final-results": "node import-final-results.js",
+    "start": "node index.js",
+    "backfill-events": "node scripts/backfill-events.js"
     "import-weather": "npx tsx import-weather-alerts.ts",
     "import-bluesky": "npx tsx bluesky_scraper.tsx",
-    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
